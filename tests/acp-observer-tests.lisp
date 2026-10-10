@@ -216,3 +216,41 @@
                   "coalescing preserves fragment text and order")))
           (agentcomms:connection-close (agentcomms:acp-client-connection client))))))
   nil)
+
+(-> test-acp-observer-skips-empty-message-text () null)
+(defun test-acp-observer-skips-empty-message-text ()
+  "Send no message for empty text, so interleaved empty deltas keep thoughts coalesced."
+  (with-test-configuration (configuration)
+    (let* ((service (acp-observer-test-service configuration))
+           (session (make-instance 'acp-session :service service :identifier "empty-text"
+                                   :application (make-instance 'application :configuration configuration)))
+           (observer (make-instance 'acp-observer :session session :turn-sequence 1))
+           (client (make-instance 'acp-observer-test-client)))
+      (multiple-value-bind (server client-channel) (agentcomms:make-acp-channel-pair)
+        (unwind-protect
+             (progn
+               (agentcomms:acp-agent-connect service server)
+               (agentcomms:acp-client-connect client client-channel)
+               (agentcomms:client-initialize client)
+               ;; Providers stream an empty content delta beside each
+               ;; reasoning delta while the model is still thinking.
+               (agent-observer-reasoning observer "first ")
+               (agent-observer-text observer "")
+               (agent-observer-reasoning observer "thought")
+               (agent-observer-text observer "")
+               (test-assert
+                (acp-observer--approval observer "shell.run" (json-object "command" "pwd") '(:command))
+                "the editor can approve after receiving pending thoughts")
+               (let ((updates (acp-observer-test-client-permission-updates client)))
+                 (test-assert
+                  (equal '(:agent-thought-chunk)
+                         (mapcar #'agentcomms:acp-update-kind updates))
+                  "empty text sends no message chunk")
+                 (test-assert
+                  (equal (list "first thought")
+                         (mapcar (lambda (update)
+                                   (agentcomms:acp-content-text (agentcomms:json-get update "content")))
+                                 updates))
+                  "the thought fragments arrive as one chunk")))
+          (agentcomms:connection-close (agentcomms:acp-client-connection client))))))
+  nil)

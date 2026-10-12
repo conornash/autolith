@@ -276,12 +276,19 @@ connected to Autolith's own image, and an agent-shell conversation with the same
 Autolith. What you define in the REPL lives beside the agent, which can inspect
 it and advise.
 
+The sly REPL spans the bottom quarter of the whole frame. Above it, edit code
+on the left and converse in the right third.
+
 Install sly and agent-shell, load the file, and run =M-x autolith-ide= from the
 buffer you are editing:
 
 #+BEGIN_SRC emacs-lisp
 (load "/path/to/autolith/emacs/autolith.el")
 #+END_SRC
+
+Optional Sly contribs need their Lisp dependencies in Autolith's image. For
+=sly-stepper=, install =agnostic-lizard= in a persistent ASDF source registry
+visible to the Autolith process before Slynk starts.
 
 =autolith-ide= starts the Emacs server if needed and launches =autolith acp=
 through agent-shell with three environment variables:
@@ -356,7 +363,7 @@ Because the viewport owns the mouse, hold =Shift= while dragging to select text
 with the terminal emulator. Fullscreen history lives in the application rather
 than the terminal emulator's native scrollback.
 
-For input with matching saved memories, a dim =N relevant memories exist= line
+For input with matching saved memories, a dim =@ N relevant memories exist= line
 appears below your message. Its count is the number offered to the model for that
 request. Each input gets one notice across tool calls and provider retries.
 
